@@ -2,6 +2,8 @@
 const int onOffPin = 4;
 int onOffState = 0;
 int onOffPrevState = 0;
+unsigned long lastDebounceTime = 0;
+unsigned long debounceDelay = 50;
 
 //Variables for the motor 1
 const int motor1Pin1 = 2;
@@ -16,6 +18,11 @@ const int motor2Pin2 = 12;
 const int motor2EnablePin = 10;
 int motor2Enable = 0;
 int motor2Speed = 150;
+
+//Instructions
+const int nombreInstructions = 3;
+char instructions[nombreInstructions] = "ALA";
+int distances[nombreInstructions] = {20, 10, 30};
 
 void setup() {
   // put your setup code here, to run once:
@@ -46,17 +53,9 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  onOffState = digitalRead(onOffPin);
-  delay(1);
-
-  //Turn the motors on or off with the button
-  if (onOffState != onOffPrevState) {
-    if (onOffState == HIGH) {
-      motor1Enable = !motor1Enable;
-      motor2Enable = !motor2Enable;
-    }
-  }
-
+  
+  changeSpeed(255, 255);
+  buttonLogic();
   if (motor1Enable == 1) {
     analogWrite(motor1EnablePin, motor1Speed);
   } else {
@@ -73,4 +72,28 @@ void loop() {
   Serial.print("Motor2 : ");
   Serial.println(motor2Enable);
   
+}
+
+void changeSpeed(int v1, int v2) {
+  //Change the speed of the motor depending ont the value entered
+  motor1Speed = v1;
+  motor2Speed = v2;
+}
+
+void buttonLogic() {
+  //Turn the motors on or off with the button
+  int value = digitalRead(onOffPin);
+  if (value != onOffPrevState) {
+    lastDebounceTime = millis();  
+  }
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (value != onOffState) {
+      onOffState = value;
+      if (onOffState == HIGH) {
+        motor1Enable = !motor1Enable;
+        motor2Enable = !motor2Enable;
+      }
+    } 
+  } 
+  onOffPrevState = value;
 }
