@@ -74,10 +74,10 @@ void loop() {
   
 }
 
-void changeSpeed(int v1, int v2) {
+void changeSpeed(int vg, int vd) {
   //Change the speed of the motor depending ont the value entered
-  motor1Speed = v1;
-  motor2Speed = v2;
+  motor1Speed = vd;
+  motor2Speed = vg;
 }
 
 void buttonLogic() {
