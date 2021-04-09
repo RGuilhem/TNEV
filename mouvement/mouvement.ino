@@ -10,19 +10,28 @@ const int motor1Pin1 = 2;
 const int motor1Pin2 = 3;
 const int motor1EnablePin = 9;
 int motor1Enable = 0;
-int motor1Speed = 150;
+int motor1Speed = 0;
 
 //Variables for the motor 2
 const int motor2Pin1 = 11;
 const int motor2Pin2 = 12;
 const int motor2EnablePin = 10;
 int motor2Enable = 0;
-int motor2Speed = 150;
+int motor2Speed = 0;
 
 //Instructions
-const int nombreInstructions = 3;
-char instructions[nombreInstructions] = "ALA";
-int distances[nombreInstructions] = {20, 10, 30};
+const int nombreInstructions = 4;
+char instructions[nombreInstructions] = "ADAG";
+int valeurs[nombreInstructions] = {60, 90, 30, 90};
+int instructionIndex = 0;
+bool instructionDone = false;
+bool done = false;
+unsigned long ti = 0;
+unsigned long tActuel = 0;
+int vRectiligne = 41; //en cm par secondes
+int vAngulaire = 97; //en degres par secondes
+bool startInstructions = false;
+bool firstPass = true;
 
 void setup() {
   // put your setup code here, to run once:
@@ -54,8 +63,20 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   
-  changeSpeed(255, 255);
+  changeSpeed(0, 0);
   buttonLogic();
+
+  if (startInstructions) {
+    if (firstPass) {
+      ti = millis();
+      firstPass = false;
+      Serial.print("firstpass ti = ");
+      Serial.println(ti);
+    }
+    bouge();
+  }
+
+  //Ecrit les vitesses dans les pin du pont en H
   if (motor1Enable == 1) {
     analogWrite(motor1EnablePin, motor1Speed);
   } else {
@@ -67,12 +88,60 @@ void loop() {
     analogWrite(motor2EnablePin, 0);
   }
 
-  Serial.print("Motor1 : ");
-  Serial.println(motor1Enable);
-  Serial.print("Motor2 : ");
-  Serial.println(motor2Enable);
   
 }
+
+void bouge() {
+  tActuel = millis();
+  
+  if (instructionDone) {
+    if (instructionIndex < nombreInstructions -1){
+      instructionIndex += 1;
+      ti = millis();
+      instructionDone = false;
+    } else {
+      done = true;
+    }
+  }
+  if (!(done)) {
+    unsigned long deltaT = tActuel - ti;
+    
+    if (instructions[instructionIndex] == 'A'){
+      //code pour avancer droit
+      int dActuel = deltaT * vRectiligne / 1000;
+      if (dActuel < valeurs[instructionIndex]) {
+        changeSpeed(255, 255);
+      } else {
+        instructionDone = true;
+        changeSpeed(0, 0);
+        delay(400);
+      }
+    } else if (instructions[instructionIndex] == 'D') {
+      //code pour un virage à droite
+      int angleActuel = deltaT * vAngulaire / 1000;
+      if (angleActuel < valeurs[instructionIndex]) {
+        changeSpeed(255, 0);
+      } else {
+        instructionDone = true;
+        changeSpeed(0, 0);
+        delay(400);
+      }
+    } else if (instructions[instructionIndex] == 'G') {
+      //code pour un virage à gauche
+      int angleActuel = deltaT * vAngulaire / 1000;
+      if (angleActuel < valeurs[instructionIndex]) {
+        changeSpeed(0, 255);
+      } else {
+        instructionDone = true;
+         changeSpeed(0, 0);
+        delay(400);
+      }
+    }
+  } else {
+    changeSpeed(0, 0);
+  }
+}
+
 
 void changeSpeed(int vg, int vd) {
   //Change the speed of the motor depending ont the value entered
@@ -92,6 +161,7 @@ void buttonLogic() {
       if (onOffState == HIGH) {
         motor1Enable = !motor1Enable;
         motor2Enable = !motor2Enable;
+        startInstructions = true;
       }
     } 
   } 
